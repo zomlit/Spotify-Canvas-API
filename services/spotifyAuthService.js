@@ -7,7 +7,7 @@ const totpSecret = (function (data) {
     const mappedData = data.map((value, index) => value ^ ((index % 33) + 9));
     const hexData = Buffer.from(mappedData.join(""), "utf8").toString("hex");
     return OTPAuth.Secret.fromHex(hexData);
-})([61, 110, 58, 98, 35, 79, 117, 69, 102, 72, 92, 102, 69, 93, 41, 101, 42, 75]);
+})([62, 54, 109, 83, 107, 77, 41, 103, 45, 93, 114, 38, 41, 97, 64, 51, 95, 94, 95, 94]);
 
 const totp = new OTPAuth.TOTP({
   period: 30,
@@ -42,7 +42,7 @@ async function generateAuthPayload(reason, productType) {
     reason,
     productType,
     totp: generateTOTP(localTime),
-    totpVer: "10",
+    totpVer: "14",
     totpServer: generateTOTP(Math.floor(serverTime / 30))
   };
 }
