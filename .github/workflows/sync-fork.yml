@@ -1,4 +1,4 @@
-name: Sync Fork with Upstream
+name: Daily Repository Sync
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch: # Allow manual triggering
 
 jobs:
-  sync-fork:
+  daily-sync:
     runs-on: ubuntu-latest
     
     steps:
@@ -22,54 +22,15 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
       
-      - name: Add upstream remote
+      - name: Check current status
         run: |
-          # You need to replace 'ORIGINAL_OWNER' with the actual upstream repository owner
-          # For example, if you forked from 'microsoft/vscode', replace 'ORIGINAL_OWNER' with 'microsoft'
-          git remote add upstream https://github.com/ORIGINAL_OWNER/$(echo ${{ github.repository }} | cut -d'/' -f2).git
-          git fetch upstream
+          git status
+          echo "Current branch: $(git branch --show-current)"
+          echo "Latest commit: $(git log -1 --oneline)"
       
-      - name: Check if sync is needed
-        id: check-sync
+      - name: Pull latest changes
         run: |
-          git checkout main
-          LOCAL_COMMIT=$(git rev-parse HEAD)
-          UPSTREAM_COMMIT=$(git rev-parse upstream/main)
-          
-          if [ "$LOCAL_COMMIT" = "$UPSTREAM_COMMIT" ]; then
-            echo "sync_needed=false" >> $GITHUB_OUTPUT
-            echo "Repository is already up to date with upstream"
-          else
-            echo "sync_needed=true" >> $GITHUB_OUTPUT
-            echo "Sync needed - local: $LOCAL_COMMIT, upstream: $UPSTREAM_COMMIT"
-          fi
-      
-      - name: Sync with upstream
-        if: steps.check-sync.outputs.sync_needed == 'true'
-        run: |
-          git checkout main
-          
-          # Try to merge upstream changes
-          if git merge upstream/main --no-edit; then
-            echo "Merge successful"
-            git push origin main
-          else
-            echo "Merge conflict detected, attempting to resolve..."
-            # Abort the merge and try a rebase instead
-            git merge --abort
-            if git rebase upstream/main; then
-              echo "Rebase successful"
-              git push origin main --force-with-lease
-            else
-              echo "Rebase failed, aborting"
-              git rebase --abort
-              exit 1
-            fi
-          fi
+          git pull origin main
+          echo "Repository synced with latest changes"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Skip sync
-        if: steps.check-sync.outputs.sync_needed == 'false'
-        run: |
-          echo "No sync needed - repository is already up to date"

@@ -1,22 +1,17 @@
 # GitHub Actions Workflows
 
-## Sync Fork Workflow
+## Daily Repository Sync
 
-The `sync-fork.yml` workflow automatically syncs your forked repository with the upstream repository daily at midnight UTC.
+The `sync-fork.yml` workflow automatically syncs the Spotify-Canvas-API repository daily at midnight UTC. This ensures the repository stays up to date with any changes.
 
 ### Setup Instructions
 
-1. **Configure the upstream repository**: 
-   - Open `.github/workflows/sync-fork.yml`
-   - Replace `ORIGINAL_OWNER` with the actual upstream repository owner
-   - For example, if you forked from `microsoft/vscode`, replace `ORIGINAL_OWNER` with `microsoft`
-
-2. **Enable GitHub Actions**:
+1. **Enable GitHub Actions**:
    - Go to your repository settings
    - Navigate to "Actions" → "General"
    - Ensure "Allow all actions and reusable workflows" is selected
 
-3. **Set up repository permissions**:
+2. **Set up repository permissions**:
    - Go to your repository settings
    - Navigate to "Actions" → "General"
    - Under "Workflow permissions", select "Read and write permissions"
@@ -26,25 +21,25 @@ The `sync-fork.yml` workflow automatically syncs your forked repository with the
 
 - **Schedule**: Runs daily at midnight UTC (`0 0 * * *`)
 - **Manual trigger**: Can also be triggered manually via the "Actions" tab
-- **Smart sync**: Only syncs if there are actual changes in the upstream repository
-- **Conflict resolution**: Attempts to merge changes, and if conflicts occur, tries a rebase approach
-- **Safety**: Uses `--force-with-lease` to prevent overwriting others' work
+- **Simple sync**: Pulls the latest changes from the main branch
+- **Status reporting**: Shows current branch and latest commit information
 
-### Troubleshooting
+### What it does
 
-1. **Permission errors**: Ensure the workflow has write permissions to the repository
-2. **Merge conflicts**: The workflow will fail if it cannot automatically resolve conflicts
-3. **Upstream not found**: Double-check that you've correctly replaced `ORIGINAL_OWNER` with the actual upstream repository owner
+1. **Checks out the repository** with full history
+2. **Configures Git** with the GitHub Actions bot identity
+3. **Shows current status** including branch and latest commit
+4. **Pulls latest changes** from the main branch
 
 ### Manual Sync
 
 You can manually trigger the sync by:
 1. Going to the "Actions" tab in your repository
-2. Selecting "Sync Fork with Upstream"
+2. Selecting "Daily Repository Sync"
 3. Clicking "Run workflow"
 
 ### Customization
 
 - **Change schedule**: Modify the `cron` expression in the workflow file
 - **Add notifications**: Add notification steps using GitHub's notification actions
-- **Branch protection**: Ensure your main branch allows the workflow to push changes
+- **Branch protection**: Ensure your main branch allows the workflow to pull changes
