@@ -8,7 +8,7 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-const allowedOrigins = ['http://localhost:3000', 'https://crntly.live'];
+const allowedOrigins = ['http://localhost:3000', 'https://crntly.live', 'https://www.crntly.live' ];
 app.use(cors({
   origin: function(origin, callback) {
     // allow requests with no origin (like mobile apps, curl, etc.)
