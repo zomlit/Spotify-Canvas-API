@@ -16,6 +16,7 @@ const allowedOrigins = [
   'https://www.zomlit.com',
   'http://tauri.localhost',
   'https://tauri.localhost',
+  'tauri://localhost',
 ];
 
 app.use(cors({
