@@ -9,15 +9,17 @@ const app = express();
 const PORT = 3000;
 
 const allowedOrigins = [                                                                                                                    
-  'http://localhost:3000',                                                                                                                  
-  'https://crntly.live',                                                                                                                    
-  'https://www.crntly.live',
-  'https://zomlit.com',
-  'https://www.zomlit.com',
-  'http://tauri.localhost',
-  'https://tauri.localhost',
-  'tauri://localhost',
-];
+    'http://localhost',                                                                                                                       
+    'http://localhost:1420',                                                                                                                  
+    'http://localhost:3000',                                                                                                                  
+    'https://crntly.live',                                                                                                                    
+    'https://www.crntly.live',                                                                                                                
+    'https://zomlit.com',
+    'https://www.zomlit.com',
+    'http://tauri.localhost',
+    'https://tauri.localhost',
+    'tauri://localhost',
+  ];
 
 app.use(cors({
   origin: function(origin, callback) {
