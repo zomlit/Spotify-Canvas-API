@@ -8,31 +8,30 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-const allowedOrigins = [                                                                                                                    
-    'http://localhost',                                                                                                                       
-    'http://localhost:1420',                                                                                                                  
-    'http://localhost:3000',                                                                                                                  
-    'https://crntly.live',                                                                                                                    
-    'https://www.crntly.live',                                                                                                                
-    'https://zomlit.com',
-    'https://www.zomlit.com',
-    'http://tauri.localhost',
-    'https://tauri.localhost',
-    'tauri://localhost',
-  ];
+const allowedOrigins = [
+  'https://crntly.live',
+  'https://www.crntly.live',
+  'https://zomlit.com',
+  'https://www.zomlit.com',
+  'http://tauri.localhost',
+  'https://tauri.localhost',
+  'tauri://localhost',
+];
 
-app.use(cors({
-  origin: function(origin, callback) {
-    // allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      // Allow any localhost port (Tauri dev uses random ports)
+      if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
+    },
+    credentials: true,
+  })
+);
 
 app.use('/api/canvas', canvasRoutes);
 
@@ -41,8 +40,8 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, function () {
-    console.log("Listening on PORT: ", PORT);
-    if (PORT == 3001) { 
-      console.log('Running on local: http://localhost:3001');
-    }
+  console.log('Listening on PORT: ', PORT);
+  if (PORT === 3001) {
+    console.log('Running on local: http://localhost:3001');
+  }
 });
