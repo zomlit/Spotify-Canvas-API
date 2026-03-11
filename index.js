@@ -13,6 +13,8 @@ const allowedOrigins = [
   'https://www.crntly.live',
   'https://zomlit.com',
   'https://www.zomlit.com',
+  'https://canvas.livestreaming.tools/',
+  'https://livestreaming.tools/',
   'http://tauri.localhost',
   'https://tauri.localhost',
   'tauri://localhost',
