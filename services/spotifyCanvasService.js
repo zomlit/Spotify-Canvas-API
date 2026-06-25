@@ -1,19 +1,30 @@
 import axios from 'axios';
 import { getToken } from './spotifyAuthService.js';
 
+export class SpotifyCanvasError extends Error {
+  constructor(message, { status, body, cause } = {}) {
+    super(message);
+    this.name = "SpotifyCanvasError";
+    this.stage = "canvas";
+    this.status = status;
+    this.body = body;
+    this.cause = cause;
+  }
+}
+
 export async function getCanvases(trackUri) {
   const { CanvasRequest, CanvasResponse } = (await import('../proto/_canvas_pb.cjs')).default;
-  
+
+  const accessToken = await getToken();
+
+  const canvasRequest = new CanvasRequest();
+  const track = new CanvasRequest.Track();
+  track.setTrackUri(trackUri);
+  canvasRequest.addTracks(track);
+
+  const requestBytes = canvasRequest.serializeBinary();
+
   try {
-    const accessToken = await getToken();
-
-    const canvasRequest = new CanvasRequest();
-    const track = new CanvasRequest.Track();
-    track.setTrackUri(trackUri);
-    canvasRequest.addTracks(track);
-
-    const requestBytes = canvasRequest.serializeBinary();
-
     const response = await axios.post(
       'https://spclient.wg.spotify.com/canvaz-cache/v0/canvases',
       requestBytes,
@@ -30,15 +41,24 @@ export async function getCanvases(trackUri) {
       }
     );
 
-    if (response.status !== 200) {
-      console.error(`Canvas fetch failed: ${response.status} ${response.statusText}`);
-      return null;
-    }
-
     const parsed = CanvasResponse.deserializeBinary(response.data).toObject();
     return parsed;
   } catch (error) {
-    console.error(`Canvas request error:`, error);
-    return null;
+    throw new SpotifyCanvasError("Spotify canvas request failed", {
+      status: error.response?.status,
+      body: responseBody(error.response?.data),
+      cause: error,
+    });
   }
+}
+
+function responseBody(data) {
+  if (data == null) return undefined;
+  if (Buffer.isBuffer(data) || data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
+    return Buffer.from(data).toString("utf8").slice(0, 500);
+  }
+  if (typeof data === "string") {
+    return data.slice(0, 500);
+  }
+  return JSON.stringify(data).slice(0, 500);
 }

@@ -13,6 +13,17 @@ let currentTotpVersion = null;
 let lastFetchTime = 0;
 const FETCH_INTERVAL = 60 * 60 * 1000; // 1 hour in milliseconds
 
+export class SpotifyAuthError extends Error {
+  constructor(message, { status, body, cause } = {}) {
+    super(message);
+    this.name = "SpotifyAuthError";
+    this.stage = "token";
+    this.status = status;
+    this.body = body;
+    this.cause = cause;
+  }
+}
+
 // Initialize TOTP secrets on startup
 initializeTOTPSecrets();
 
@@ -110,58 +121,77 @@ function useFallbackSecret() {
   console.log('Using fallback TOTP secret');
 }
 
-export async function getToken(reason = "init", productType = "mobile-web-player") {
+export async function getToken() {
   // Ensure we have a TOTP instance
   if (!currentTotp) {
     await initializeTOTPSecrets();
   }
 
-  const payload = await generateAuthPayload(reason, productType);
+  if (!SP_DC) {
+    throw new SpotifyAuthError("Missing SP_DC environment variable");
+  }
 
-  const url = new URL("https://open.spotify.com/api/token");
-  Object.entries(payload).forEach(([key, value]) => url.searchParams.append(key, value));
+  const serverTime = await getServerTime();
+  const otp = generateTOTP(serverTime * 1000);
 
-  const response = await axios.get(url.toString(), {
-    headers: {
-      'User-Agent': userAgent(),
-      'Origin': 'https://open.spotify.com/',
-      'Referer': 'https://open.spotify.com/',
-      'Cookie': `sp_dc=${SP_DC}`,
-    },
-  });
+  for (const reason of ["transport", "init"]) {
+    try {
+      const payload = generateAuthPayload(reason, otp);
+      const url = new URL("https://open.spotify.com/api/token");
+      Object.entries(payload).forEach(([key, value]) => url.searchParams.append(key, value));
 
-  return response.data?.accessToken;
+      const response = await axios.get(url.toString(), {
+        headers: {
+          'User-Agent': userAgent(),
+          'Accept': 'application/json',
+          'Referer': 'https://open.spotify.com/',
+          'App-Platform': 'WebPlayer',
+          'Cookie': `sp_dc=${SP_DC}`,
+        },
+      });
+
+      const token = response.data?.accessToken;
+      if (token) {
+        return token;
+      }
+    } catch (error) {
+      if (reason === "init") {
+        throw new SpotifyAuthError("Spotify token request failed", {
+          status: error.response?.status,
+          body: responseBody(error.response?.data),
+          cause: error,
+        });
+      }
+    }
+  }
+
+  throw new SpotifyAuthError("Spotify token response did not include an access token");
 }
 
-async function generateAuthPayload(reason, productType) {
-  const localTime = Date.now();
-  const serverTime = await getServerTime();
-
+function generateAuthPayload(reason, otp) {
   return {
     reason,
-    productType,
-    totp: generateTOTP(localTime),
+    productType: "web-player",
+    totp: otp,
     totpVer: currentTotpVersion || "19",
-    totpServer: generateTOTP(Math.floor(serverTime / 30))
+    totpServer: otp
   };
 }
 
 async function getServerTime() {
   try {
-    const { data } = await axios.get("https://open.spotify.com/api/server-time", {
+    const { headers } = await axios.head("https://open.spotify.com/", {
       headers: {
         'User-Agent': userAgent(),
-        'Origin': 'https://open.spotify.com/',
-        'Referer': 'https://open.spotify.com/',
-        'Cookie': `sp_dc=${SP_DC}`,
+        'Accept': '*/*',
       },
     });
 
-    const time = Number(data.serverTime);
+    const time = Date.parse(headers.date);
     if (isNaN(time)) throw new Error("Invalid server time");
-    return time * 1000;
+    return Math.floor(time / 1000);
   } catch {
-    return Date.now();
+    return Math.floor(Date.now() / 1000);
   }
 }
 
@@ -174,4 +204,15 @@ function generateTOTP(timestamp) {
 
 function userAgent() {
   return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
+}
+
+function responseBody(data) {
+  if (data == null) return undefined;
+  if (Buffer.isBuffer(data) || data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
+    return Buffer.from(data).toString("utf8").slice(0, 500);
+  }
+  if (typeof data === "string") {
+    return data.slice(0, 500);
+  }
+  return JSON.stringify(data).slice(0, 500);
 }

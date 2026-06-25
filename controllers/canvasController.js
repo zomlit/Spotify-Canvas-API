@@ -6,10 +6,22 @@ export const fetchCanvas = async (req, res) => {
     return res.status(400).json({ error: 'Missing trackId parameter' });
   }
 
-  const canvasData = await getCanvases(`spotify:track:${trackId}`);
-  if (!canvasData) {
-    return res.status(500).json({ error: 'Failed to fetch canvas data' });
-  }
+  try {
+    const canvasData = await getCanvases(`spotify:track:${trackId}`);
+    res.json(canvasData);
+  } catch (error) {
+    console.error('Failed to fetch canvas data:', {
+      stage: error.stage,
+      status: error.status,
+      message: error.message,
+      body: error.body,
+    });
 
-  res.json(canvasData);
+    return res.status(502).json({
+      error: 'Failed to fetch canvas data',
+      stage: error.stage || 'unknown',
+      status: error.status,
+      message: error.message,
+    });
+  }
 };
