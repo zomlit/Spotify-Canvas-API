@@ -14,6 +14,7 @@ const allowedOrigins = [
   'https://zomlit.com',
   'https://www.zomlit.com',
   'https://canvas.livestreaming.tools',
+  'https://crntly.livestreaming.tools',
   'https://www.livestreaming.tools',
   'https://livestreaming.tools',
   'http://tauri.localhost',
